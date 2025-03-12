@@ -1,3 +1,67 @@
-DUMP
+// SUBI SP, SP, #360
 
-SUBI SP, SP, #80
+ADDI X19, XZR, #0 // Save a (beginning of memory)
+ADDI X20, X20, #512 // Save Size
+
+SUBI SP, SP, #16
+STUR X19, [SP, #0]
+STUR X20, [SP, #8]
+
+ADDI X0, X19, #0
+ADDI X1, X20, #0
+
+BL fill
+
+LDUR X19, [SP, #0]
+LDUR X20, [SP, #8]
+ADDI SP, SP, #16
+
+B end
+
+// X0 = a 
+// X1 = size
+fill:
+    ADDI X9, XZR, #0 // Init i
+    ADDI X10, X1, #1
+
+    LSR X10, X10, #1 // X10 = s+1 / 2
+    LSR X11, X1, #1 //X11 = s / 2
+
+    SUBIS XZR, X1, #2
+    B.LT top
+
+    top:
+        SUBS XZR, X9, X11
+        B.GE fillFirst
+
+        ADDI X12, X9, #1
+        SUB X12, X10, X12 // temp = ((s+1) / 2) - (i + 1) 
+        LSL X12, X12, #3
+        ADD X12, X12, X0
+        
+        LSL X13, X9, #1
+        STUR X13, [X12, #0]
+
+        ADD X12, X10, X9 // temp = ((s+1) / 2) + i 
+        LSL X12, X12, #3
+        ADD X12, X12, X0
+        
+        // LSL X13, X9, #1
+        ADDI X13, X9, #1
+        STUR X13, [X12, #0]
+
+        ADDI X9, X9, #1
+        B top
+
+    fillFirst:
+        ANDIS X12, X1, #1   // AND size with 1
+        CBZ X12, fillDone // Check if it's FALSE to branch
+
+        SUBI X12, X1, #1
+        STUR X12, [X0, #0]
+
+    fillDone:
+        BR LR
+
+end: 
+    DUMP
