@@ -1,7 +1,8 @@
 // SUBI SP, SP, #360
+// TODO Check all Saved / Temp registers for convention
 
 ADDI X19, XZR, #0 // Save a (beginning of memory)
-ADDI X20, X20, #512 // Save Size
+ADDI X20, XZR, #10 // Save Size
 
 SUBI SP, SP, #16
 STUR X19, [SP, #0]
@@ -11,6 +12,19 @@ ADDI X0, X19, #0
 ADDI X1, X20, #0
 
 BL fill
+// Necessary? Saved registers should be saved by callee
+LDUR X19, [SP, #0] 
+LDUR X20, [SP, #8]
+ADDI SP, SP, #16
+
+SUBI SP, SP, #16
+STUR X19, [SP, #0]
+STUR X20, [SP, #8]
+
+ADDI X0, X19, #0
+ADDI X1, X20, #0
+
+BL heapsort
 
 LDUR X19, [SP, #0]
 LDUR X20, [SP, #8]
@@ -28,9 +42,9 @@ fill:
     LSR X11, X1, #1 //X11 = s / 2
 
     SUBIS XZR, X1, #2
-    B.LT top
+    B.LT fillFirst // TODO Test Size Edge Cases
 
-    top:
+    fillTop:
         SUBS XZR, X9, X11
         B.GE fillFirst
 
@@ -40,27 +54,195 @@ fill:
         ADD X12, X12, X0
         
         LSL X13, X9, #1
+        // PRNT X13
         STUR X13, [X12, #0]
 
         ADD X12, X10, X9 // temp = ((s+1) / 2) + i 
         LSL X12, X12, #3
         ADD X12, X12, X0
         
-        // LSL X13, X9, #1
-        ADDI X13, X9, #1
+        LSL X13, X9, #1
+        ADDI X13, X13, #1
         STUR X13, [X12, #0]
 
         ADDI X9, X9, #1
-        B top
+        B fillTop
 
     fillFirst:
         ANDIS X12, X1, #1   // AND size with 1
         CBZ X12, fillDone // Check if it's FALSE to branch
 
         SUBI X12, X1, #1
+        PRNT X12
         STUR X12, [X0, #0]
 
     fillDone:
+        BR LR
+
+// X0 = a 
+// X1 = size
+heapsort:
+    SUBI SP, SP, #48
+    STUR LR, [SP, #0]
+    STUR X1, [SP, #8]
+    STUR X19, [SP, #16]
+    STUR X20, [SP, #24]
+    STUR X21, [SP, #32]
+    STUR X22, [SP, #40]
+
+    // Save a and s in saved registers
+    ADDI X19, X0, #0 
+    ADDI X20, X1, #0
+
+    BL heapify
+
+    // X21 is i, X22 is temp (s-i)
+    ADDI X21, XZR, #1 
+
+    sortTop:
+        SUBS XZR, X21, X20
+        B.GE sortDone
+        
+        SUB X22, X20, X21
+        ADD X1, X19, X22 // a + (s - i)
+        
+        ADDI X0, X19, #0
+        LSL X0, X0, #3
+        LSL X1, X1, #3
+        BL swap
+
+        ADDI X0, X19, #0
+        ADDI X1, X22, #0
+        ADDI X2, XZR, #0
+        BL percolate_down 
+
+        ADDI X21, X21, #1
+
+    sortDone:
+        LDUR LR, [SP, #0]
+        LDUR X1, [SP, #8]
+        LDUR X19, [SP, #16]
+        LDUR X20, [SP, #24]
+        LDUR X21, [SP, #32]
+        LDUR X22, [SP, #40]
+
+        ADDI SP, SP, #48
+        BR LR
+
+
+heapify:
+    SUBI SP, SP, #32
+    STUR LR, [SP, #0]
+    STUR X19, [SP, #8]
+    STUR X20, [SP, #16]
+    STUR X21, [SP, #24]
+
+    // Save parameters
+    ADDI X19, X0, #0
+    ADDI X20, X1, #0
+
+    // X21 is i
+    ADDI X21, X1, #1 
+    LSR X21, X21, #1
+
+    heapifyTop:
+        CBZ X21, heapifyDone
+        
+        ADDI X0, X19, #0
+        ADDI X1, X20, #0
+        ADDI X2, X21, #0
+
+        BL percolate_down // (a, s, i)
+
+        SUBI X21, X21, #1
+        B heapifyTop
+
+    heapifyDone:
+        ADDI X0, X19, #0
+        ADDI X1, X20, #0
+        ADDI X2, XZR, #0
+        BL percolate_down // (a, s, 0)
+
+        LDUR LR, [SP, #0]
+        LDUR X19, [SP, #8]
+        LDUR X20, [SP, #16]
+        LDUR X21, [SP, #24]
+        ADDI SP, SP, #32
+        BR LR
+
+swap:
+    LDUR X9, [X0, #0]
+    LDUR X10, [X1, #0]
+
+    STUR X10, [X0, #0]
+    STUR X9, [X1, #0]
+
+    BR LR
+
+percolate_down:
+    SUBI SP, SP, #40
+    STUR LR, [SP, #0]
+    STUR X19, [SP, #8]
+    STUR X20, [SP, #16]
+    STUR X21, [SP, #24]
+    STUR X22, [SP, #32]
+
+    ADDI X19, X0, #0
+    ADDI X20, X1, #0
+    ADDI X21, X2, #0
+
+    // Child (X22) = (2 * i) + 1
+    LSL X22, X21, #1
+    ADDI X22, X22, #1
+
+    percolateTop:
+        SUBS XZR, X22, X20
+        B.GE percolateDone
+
+        ADDI X9, X22, #1
+        SUBS X10, X9, X20
+        B.GE ifSwap 
+
+        LSL X10, X22, #3
+        LDUR X11, [X10, #0]
+        LSL X9, X9, #3
+        LDUR X12, [X9, #0]
+        SUBS XZR, X11, X12
+        B.GE ifSwap
+
+        ADDI X22, X22, #1
+
+        ifSwap:
+            LSL X10, X21, #3
+            LSL X13, X22, #3
+            LDUR X11, [X10, #0]
+            LDUR X12, [X13, #0]
+            SUBS XZR, X11, X12
+            B.GE elseSwap
+
+            // a + i
+            ADD X0, X19, X10
+            // a + child
+            ADD X1, X19, X13
+            BL swap
+
+
+        // i = child, child = (2 * i) + 1
+        elseSwap:
+            ADDI X21, X22, #0
+            LSL X22, X21, #1
+            ADDI X22, X22, #1
+        
+        B percolateTop
+    
+    percolateDone:
+        LDUR LR, [SP, #0]
+        LDUR X19, [SP, #8]
+        LDUR X20, [SP, #16]
+        LDUR X21, [SP, #24]
+        LDUR X22, [SP, #32]
+        ADDI SP, SP, #40
+
         BR LR
 
 end: 
