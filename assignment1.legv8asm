@@ -118,6 +118,8 @@ heapsort:
 
         ADDI X21, X21, #1
 
+        B sortTop
+
     sortDone:
         LDUR LR, [SP, #0]
         LDUR X1, [SP, #8]
