@@ -1,25 +1,18 @@
 // SUBI SP, SP, #360
 // TODO Check all Saved / Temp registers for convention
 
-ADDI X19, XZR, #0 // Save a (beginning of memory)
-ADDI X20, XZR, #10 // Save Size
-
+// Saving registers here just to be safe, there is no function that calls main, so no real need to save
 SUBI SP, SP, #16
 STUR X19, [SP, #0]
 STUR X20, [SP, #8]
+
+ADDI X19, XZR, #0 // Save a (beginning of memory)
+ADDI X20, XZR, #512 // Save Size
 
 ADDI X0, X19, #0
 ADDI X1, X20, #0
 
 BL fill
-// Necessary? Saved registers should be saved by callee
-LDUR X19, [SP, #0] 
-LDUR X20, [SP, #8]
-ADDI SP, SP, #16
-
-SUBI SP, SP, #16
-STUR X19, [SP, #0]
-STUR X20, [SP, #8]
 
 ADDI X0, X19, #0
 ADDI X1, X20, #0
@@ -42,7 +35,7 @@ fill:
     LSR X11, X1, #1 //X11 = s / 2
 
     SUBIS XZR, X1, #2
-    B.LT fillFirst // TODO Test Size Edge Cases
+    B.LT fillFirst
 
     fillTop:
         SUBS XZR, X9, X11
@@ -248,4 +241,4 @@ percolate_down:
         BR LR
 
 end: 
-    DUMP
+    HALT
