@@ -1,7 +1,7 @@
-COMS3210 PA1
-Pablo Leguizamo - pnleg@iastate.edu
-Shashank Koneru - skoneru@iastate.edu
-3/28/25
+// COMS3210 PA1
+// Pablo Leguizamo - pnleg@iastate.edu
+// Shashank Koneru - skoneru@iastate.edu
+// 3/28/25
 
 // Saving registers here just to be safe, there is no function that calls main, so no real need to save
 SUBI SP, SP, #16
